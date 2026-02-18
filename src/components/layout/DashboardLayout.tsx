@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { AppSidebar } from "./AppSidebar";
 import { TopNavbar } from "./TopNavbar";
 
@@ -8,17 +8,33 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children, pageTitle }: DashboardLayoutProps) {
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Sidebar — fixed, hover-expand */}
-      <AppSidebar />
+      {/* Sidebar */}
+      <AppSidebar
+        mobileSidebarOpen={mobileSidebarOpen}
+        onMobileClose={() => setMobileSidebarOpen(false)}
+      />
 
-      {/* Top navbar — fixed, offset by collapsed sidebar width (72px) */}
-      <TopNavbar pageTitle={pageTitle} />
+      {/* Mobile overlay */}
+      {mobileSidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 md:hidden"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
 
-      {/* Main content — offset by sidebar collapsed width + navbar height */}
-      <main className="ml-[72px] pt-16 min-h-screen">
-        <div className="p-6">{children}</div>
+      {/* Top navbar */}
+      <TopNavbar
+        pageTitle={pageTitle}
+        onMobileMenuToggle={() => setMobileSidebarOpen((v) => !v)}
+      />
+
+      {/* Main content */}
+      <main className="md:ml-[72px] pt-16 min-h-screen">
+        <div className="p-4 md:p-6">{children}</div>
       </main>
     </div>
   );

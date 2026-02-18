@@ -1,9 +1,14 @@
 import { useState } from "react";
-import { ChevronDown, Settings, LogOut, User, Shield } from "lucide-react";
+import { ChevronDown, Settings, LogOut, User, Shield, Menu } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
-export function TopNavbar({ pageTitle }: { pageTitle?: string }) {
+interface TopNavbarProps {
+  pageTitle?: string;
+  onMobileMenuToggle?: () => void;
+}
+
+export function TopNavbar({ pageTitle, onMobileMenuToggle }: TopNavbarProps) {
   const { user, role, signOut } = useAuth();
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -25,29 +30,41 @@ export function TopNavbar({ pageTitle }: { pageTitle?: string }) {
   };
 
   return (
-    <header className="fixed top-0 right-0 left-[72px] h-16 z-30 flex items-center justify-between px-6 bg-card border-b border-border transition-all duration-300">
-      {/* Page title */}
-      <div>
-        <h1 className="text-base font-semibold text-foreground">
-          {pageTitle ?? "Dashboard"}
-        </h1>
-        <p className="text-xs text-muted-foreground">
-          Ivalora Gadget RMS (Retail Management System)
-        </p>
+    <header className="fixed top-0 right-0 left-0 md:left-[72px] h-16 z-30 flex items-center justify-between px-4 md:px-6 bg-card border-b border-border transition-all duration-300">
+      {/* Left: hamburger (mobile) + page title */}
+      <div className="flex items-center gap-3">
+        {/* Mobile hamburger */}
+        <button
+          onClick={onMobileMenuToggle}
+          className="md:hidden p-2 rounded-lg hover:bg-accent transition-colors text-foreground"
+          aria-label="Toggle menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
+        {/* Page title */}
+        <div>
+          <h1 className="text-sm md:text-base font-semibold text-foreground leading-tight">
+            {pageTitle ?? "Dashboard"}
+          </h1>
+          <p className="text-[10px] md:text-xs text-muted-foreground hidden sm:block">
+            Ivalora Gadget RMS (Retail Management System)
+          </p>
+        </div>
       </div>
 
       {/* Profile section */}
       <div className="relative">
         <button
           onClick={() => setDropdownOpen((v) => !v)}
-          className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-accent transition-colors duration-150"
+          className="flex items-center gap-2 md:gap-3 px-2 md:px-3 py-2 rounded-xl hover:bg-accent transition-colors duration-150"
         >
           {/* Avatar */}
           <div className="w-8 h-8 rounded-full bg-foreground flex items-center justify-center text-background text-xs font-bold shrink-0">
             {initials}
           </div>
 
-          {/* Name & Role */}
+          {/* Name & Role — hidden on mobile */}
           <div className="text-left hidden sm:block">
             <p className="text-sm font-medium text-foreground leading-tight">{fullName}</p>
             <p className="text-xs text-muted-foreground leading-tight">{displayRole}</p>
