@@ -12,6 +12,7 @@ import {
   BookOpen,
   BarChart3,
   ChevronRight,
+  X,
 } from "lucide-react";
 import logoFull from "@/assets/logo-full.svg";
 import logoIcon from "@/assets/logo-icon.svg";
@@ -44,7 +45,12 @@ const navItems: NavItem[] = [
   { title: "Laporan & Analitika", url: "/laporan", icon: BarChart3 },
 ];
 
-export function AppSidebar() {
+interface AppSidebarProps {
+  mobileSidebarOpen?: boolean;
+  onMobileClose?: () => void;
+}
+
+export function AppSidebar({ mobileSidebarOpen = false, onMobileClose }: AppSidebarProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [openGroups, setOpenGroups] = useState<string[]>([
     "Penjualan",
@@ -57,27 +63,22 @@ export function AppSidebar() {
     );
   };
 
-  return (
-    <aside
-      onMouseEnter={() => setIsExpanded(true)}
-      onMouseLeave={() => setIsExpanded(false)}
-      className="fixed left-0 top-0 h-screen z-40 flex flex-col overflow-hidden bg-sidebar border-r border-sidebar-border transition-all duration-300 ease-in-out shadow-sm"
-      style={{ width: isExpanded ? "260px" : "72px" }}
-    >
+  const sidebarContent = (isMobile: boolean) => (
+    <>
       {/* Logo area */}
-      <div className="flex items-center justify-center h-16 px-4 border-b border-sidebar-border shrink-0 overflow-hidden">
-        {isExpanded ? (
-          <img
-            src={logoFull}
-            alt="Ivalora Gadget"
-            className="h-7 object-contain transition-all duration-300"
-          />
-        ) : (
-          <img
-            src={logoIcon}
-            alt="Logo"
-            className="w-8 h-8 object-contain transition-all duration-300"
-          />
+      <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border shrink-0 overflow-hidden">
+        <img
+          src={isMobile ? logoFull : isExpanded ? logoFull : logoIcon}
+          alt="Ivalora Gadget"
+          className={`object-contain transition-all duration-300 ${isMobile ? "h-7" : isExpanded ? "h-7" : "w-8 h-8"}`}
+        />
+        {isMobile && (
+          <button
+            onClick={onMobileClose}
+            className="p-1.5 rounded-lg hover:bg-sidebar-accent text-sidebar-foreground transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
         )}
       </div>
 
@@ -90,15 +91,16 @@ export function AppSidebar() {
                 key={item.title}
                 to={item.url}
                 end
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-150 overflow-hidden group"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-150 overflow-hidden group"
                 activeClassName="bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                onClick={isMobile ? onMobileClose : undefined}
               >
                 <item.icon className="w-5 h-5 shrink-0" />
                 <span
                   className="text-sm font-medium whitespace-nowrap transition-all duration-300 overflow-hidden"
                   style={{
-                    opacity: isExpanded ? 1 : 0,
-                    maxWidth: isExpanded ? "200px" : "0px",
+                    opacity: isMobile || isExpanded ? 1 : 0,
+                    maxWidth: isMobile || isExpanded ? "200px" : "0px",
                   }}
                 >
                   {item.title}
@@ -108,19 +110,20 @@ export function AppSidebar() {
           }
 
           const isOpen = openGroups.includes(item.title);
+          const showExpanded = isMobile || isExpanded;
 
           return (
             <div key={item.title}>
               <button
-                onClick={() => isExpanded && toggleGroup(item.title)}
+                onClick={() => showExpanded && toggleGroup(item.title)}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-150 overflow-hidden"
               >
                 <item.icon className="w-5 h-5 shrink-0" />
                 <span
                   className="text-sm font-medium whitespace-nowrap flex-1 text-left transition-all duration-300 overflow-hidden"
                   style={{
-                    opacity: isExpanded ? 1 : 0,
-                    maxWidth: isExpanded ? "160px" : "0px",
+                    opacity: showExpanded ? 1 : 0,
+                    maxWidth: showExpanded ? "160px" : "0px",
                   }}
                 >
                   {item.title}
@@ -128,7 +131,7 @@ export function AppSidebar() {
                 <ChevronRight
                   className="w-4 h-4 shrink-0 transition-all duration-200"
                   style={{
-                    opacity: isExpanded ? 1 : 0,
+                    opacity: showExpanded ? 1 : 0,
                     transform: isOpen ? "rotate(90deg)" : "rotate(0deg)",
                   }}
                 />
@@ -138,8 +141,8 @@ export function AppSidebar() {
               <div
                 className="overflow-hidden transition-all duration-300"
                 style={{
-                  maxHeight: isExpanded && isOpen ? `${item.children.length * 44}px` : "0px",
-                  opacity: isExpanded && isOpen ? 1 : 0,
+                  maxHeight: showExpanded && isOpen ? `${item.children.length * 44}px` : "0px",
+                  opacity: showExpanded && isOpen ? 1 : 0,
                 }}
               >
                 <div className="ml-4 mt-0.5 mb-1 border-l border-sidebar-border pl-3 space-y-0.5">
@@ -150,6 +153,7 @@ export function AppSidebar() {
                       end
                       className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-150 whitespace-nowrap"
                       activeClassName="bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground font-medium"
+                      onClick={isMobile ? onMobileClose : undefined}
                     >
                       <child.icon className="w-4 h-4 shrink-0" />
                       <span>{child.title}</span>
@@ -168,12 +172,35 @@ export function AppSidebar() {
           <div className="w-2 h-2 rounded-full bg-primary/60 shrink-0" />
           <span
             className="text-xs text-sidebar-foreground/50 whitespace-nowrap transition-all duration-300"
-            style={{ opacity: isExpanded ? 1 : 0 }}
+            style={{ opacity: isMobile || isExpanded ? 1 : 0 }}
           >
             v1.0.0 · Online
           </span>
         </div>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop sidebar — hover expand */}
+      <aside
+        onMouseEnter={() => setIsExpanded(true)}
+        onMouseLeave={() => setIsExpanded(false)}
+        className="hidden md:flex fixed left-0 top-0 h-screen z-40 flex-col overflow-hidden bg-sidebar border-r border-sidebar-border transition-all duration-300 ease-in-out shadow-sm"
+        style={{ width: isExpanded ? "260px" : "72px" }}
+      >
+        {sidebarContent(false)}
+      </aside>
+
+      {/* Mobile sidebar — slide in from left */}
+      <aside
+        className={`md:hidden fixed left-0 top-0 h-screen z-50 flex flex-col w-[280px] bg-sidebar border-r border-sidebar-border shadow-xl transition-transform duration-300 ease-in-out ${
+          mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        {sidebarContent(true)}
+      </aside>
+    </>
   );
 }

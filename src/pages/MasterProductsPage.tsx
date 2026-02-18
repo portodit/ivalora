@@ -20,6 +20,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 import {
   Plus,
@@ -33,6 +39,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Tag,
+  SlidersHorizontal,
+  X,
 } from "lucide-react";
 import {
   MasterProduct,
@@ -77,6 +85,9 @@ export default function MasterProductsPage() {
   const [showDeactivate, setShowDeactivate] = useState(false);
   const [deactivateProduct, setDeactivateProduct] = useState<MasterProduct | null>(null);
   const [deactivateLoading, setDeactivateLoading] = useState(false);
+
+  // ─── Mobile filter sheet ──────────────────────────────────
+  const [showFilterSheet, setShowFilterSheet] = useState(false);
 
   // ─── Debounce search ─────────────────────────────────────
   useEffect(() => {
@@ -232,7 +243,8 @@ export default function MasterProductsPage() {
       </div>
 
       {/* ── Filters ── */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+      {/* Desktop: inline filters */}
+      <div className="hidden sm:flex gap-3 mb-4">
         <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
@@ -242,7 +254,7 @@ export default function MasterProductsPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2">
           <Select value={filterCategory} onValueChange={setFilterCategory}>
             <SelectTrigger className="h-9 w-36">
               <SelectValue placeholder="Kategori" />
@@ -278,12 +290,41 @@ export default function MasterProductsPage() {
         </div>
       </div>
 
+      {/* Mobile: search + filter button in one row */}
+      <div className="flex sm:hidden gap-2 mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Cari seri atau warna..."
+            className="pl-9 h-9"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 px-3 gap-2 shrink-0 relative"
+          onClick={() => setShowFilterSheet(true)}
+        >
+          <SlidersHorizontal className="w-4 h-4" />
+          Filter
+          {/* Active filter badge */}
+          {(filterCategory !== "all" || filterWarranty !== "all" || filterStatus !== "active") && (
+            <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center">
+              {[filterCategory !== "all", filterWarranty !== "all", filterStatus !== "active"].filter(Boolean).length}
+            </span>
+          )}
+        </Button>
+      </div>
+
       {/* ── Count ── */}
       {!loading && !error && (
         <p className="text-xs text-muted-foreground mb-3">
           {totalCount} SKU ditemukan
         </p>
       )}
+
 
       {/* ── Table ── */}
       <div className="rounded-xl border border-border bg-card overflow-hidden">
@@ -471,9 +512,108 @@ export default function MasterProductsPage() {
         open={showWarrantyModal}
         onClose={() => {
           setShowWarrantyModal(false);
-          fetchWarrantyLabels(); // Refresh labels after editing
+          fetchWarrantyLabels();
         }}
       />
+
+      {/* ── Mobile Filter Bottom Sheet ── */}
+      <Sheet open={showFilterSheet} onOpenChange={setShowFilterSheet}>
+        <SheetContent side="bottom" className="rounded-t-2xl px-5 pb-8 pt-4">
+          <SheetHeader className="mb-5">
+            <div className="flex items-center justify-between">
+              <SheetTitle className="text-base font-semibold">Filter Produk</SheetTitle>
+              {/* Active filter count + reset */}
+              {(filterCategory !== "all" || filterWarranty !== "all" || filterStatus !== "active") && (
+                <button
+                  className="flex items-center gap-1 text-xs text-destructive font-medium hover:opacity-70 transition-opacity"
+                  onClick={() => {
+                    setFilterCategory("all");
+                    setFilterWarranty("all");
+                    setFilterStatus("active");
+                  }}
+                >
+                  <X className="w-3 h-3" />
+                  Reset filter
+                </button>
+              )}
+            </div>
+          </SheetHeader>
+
+          <div className="space-y-4">
+            {/* Kategori */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Kategori</p>
+              <div className="flex flex-wrap gap-2">
+                {[{ value: "all", label: "Semua" }, ...(Object.entries(CATEGORY_LABELS) as [ProductCategory, string][]).map(([k, v]) => ({ value: k, label: v }))].map(({ value, label }) => (
+                  <button
+                    key={value}
+                    onClick={() => setFilterCategory(value)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                      filterCategory === value
+                        ? "bg-foreground text-background border-foreground"
+                        : "bg-background text-foreground border-border hover:border-foreground/40"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Garansi */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Garansi</p>
+              <div className="flex flex-wrap gap-2">
+                {[{ key: "all", label: "Semua" }, ...warrantyLabels].map((w) => (
+                  <button
+                    key={w.key}
+                    onClick={() => setFilterWarranty(w.key)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                      filterWarranty === w.key
+                        ? "bg-foreground text-background border-foreground"
+                        : "bg-background text-foreground border-border hover:border-foreground/40"
+                    }`}
+                  >
+                    {w.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Status */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Status</p>
+              <div className="flex gap-2">
+                {[
+                  { value: "active", label: "Aktif" },
+                  { value: "inactive", label: "Nonaktif" },
+                  { value: "all", label: "Semua" },
+                ].map(({ value, label }) => (
+                  <button
+                    key={value}
+                    onClick={() => setFilterStatus(value)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                      filterStatus === value
+                        ? "bg-foreground text-background border-foreground"
+                        : "bg-background text-foreground border-border hover:border-foreground/40"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <Button
+              className="w-full mt-2"
+              onClick={() => setShowFilterSheet(false)}
+            >
+              Terapkan Filter
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </DashboardLayout>
   );
 }
+

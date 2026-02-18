@@ -108,8 +108,8 @@ export default function StockIMEIPage() {
         {/* ── Page header ── */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
           <div>
-            <h1 className="text-lg font-semibold text-foreground">Manajemen Stok</h1>
-            <p className="text-xs text-muted-foreground">Kelola dan pantau seluruh unit iPhone berbasis IMEI secara real-time.</p>
+            <h1 className="text-lg font-semibold text-foreground">Stok IMEI</h1>
+            <p className="text-xs text-muted-foreground">Kelola dan pantau seluruh unit berbasis IMEI secara real-time.</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs" onClick={handleRefresh}>
@@ -153,27 +153,31 @@ export default function StockIMEIPage() {
         </div>
 
         {/* ── Filter & Search panel ── */}
-        <div className="bg-card rounded-xl border border-border p-4 space-y-3">
-          <div className="flex flex-col sm:flex-row gap-2">
+        <div className="bg-card rounded-xl border border-border p-3 md:p-4 space-y-3">
+          <div className="flex gap-2">
+            {/* Search — full width on mobile */}
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Cari berdasarkan IMEI atau Seri…"
+                placeholder="Cari IMEI atau seri…"
                 className="pl-9 h-9 text-sm"
               />
             </div>
-            <Select value={filterCondition} onValueChange={setFilterCondition}>
-              <SelectTrigger className="h-9 w-full sm:w-36 text-sm">
-                <SelectValue placeholder="Kondisi" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Kondisi</SelectItem>
-                <SelectItem value="no_minus">No Minus</SelectItem>
-                <SelectItem value="minus">Ada Minus</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* Condition — hidden on mobile, shown inline on desktop */}
+            <div className="hidden sm:block">
+              <Select value={filterCondition} onValueChange={setFilterCondition}>
+                <SelectTrigger className="h-9 w-36 text-sm">
+                  <SelectValue placeholder="Kondisi" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Kondisi</SelectItem>
+                  <SelectItem value="no_minus">No Minus</SelectItem>
+                  <SelectItem value="minus">Ada Minus</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             {/* View toggle */}
             <div className="flex items-center gap-1 bg-muted rounded-lg p-1 h-9">
               <button
@@ -190,9 +194,33 @@ export default function StockIMEIPage() {
               </button>
             </div>
             {hasActiveFilters && (
-              <Button variant="ghost" size="sm" className="h-9 gap-1.5 text-xs text-muted-foreground" onClick={resetFilters}>
+              <Button variant="ghost" size="sm" className="h-9 gap-1.5 text-xs text-muted-foreground hidden sm:flex" onClick={resetFilters}>
                 <X className="w-3 h-3" /> Reset
               </Button>
+            )}
+          </div>
+          {/* Mobile: condition filter as pill chips */}
+          <div className="flex sm:hidden items-center gap-2 overflow-x-auto pb-0.5">
+            {["all", "no_minus", "minus"].map((v) => (
+              <button
+                key={v}
+                onClick={() => setFilterCondition(v)}
+                className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                  filterCondition === v
+                    ? "bg-foreground text-background border-foreground"
+                    : "bg-background text-muted-foreground border-border"
+                }`}
+              >
+                {v === "all" ? "Semua Kondisi" : v === "no_minus" ? "No Minus" : "Ada Minus"}
+              </button>
+            ))}
+            {hasActiveFilters && (
+              <button
+                className="shrink-0 px-3 py-1 rounded-full text-xs font-medium border border-destructive/30 text-destructive"
+                onClick={resetFilters}
+              >
+                Reset
+              </button>
             )}
           </div>
           {filterStatus !== "default" && (
