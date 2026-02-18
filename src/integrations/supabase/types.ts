@@ -95,6 +95,13 @@ export type Database = {
             referencedRelation: "stock_units"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "stock_unit_logs_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "stock_units_sales_view"
+            referencedColumns: ["id"]
+          },
         ]
       }
       stock_units: {
@@ -254,7 +261,53 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      stock_units_sales_view: {
+        Row: {
+          condition_status:
+            | Database["public"]["Enums"]["condition_status"]
+            | null
+          id: string | null
+          notes: string | null
+          product_id: string | null
+          received_at: string | null
+          selling_price: number | null
+          status_changed_at: string | null
+          stock_status: Database["public"]["Enums"]["stock_status"] | null
+        }
+        Insert: {
+          condition_status?:
+            | Database["public"]["Enums"]["condition_status"]
+            | null
+          id?: string | null
+          notes?: string | null
+          product_id?: string | null
+          received_at?: string | null
+          selling_price?: number | null
+          status_changed_at?: string | null
+          stock_status?: Database["public"]["Enums"]["stock_status"] | null
+        }
+        Update: {
+          condition_status?:
+            | Database["public"]["Enums"]["condition_status"]
+            | null
+          id?: string | null
+          notes?: string | null
+          product_id?: string | null
+          received_at?: string | null
+          selling_price?: number | null
+          status_changed_at?: string | null
+          stock_status?: Database["public"]["Enums"]["stock_status"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_units_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "master_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       get_my_status: {
