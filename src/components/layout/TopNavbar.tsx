@@ -32,7 +32,7 @@ export function TopNavbar({ pageTitle }: { pageTitle?: string }) {
           {pageTitle ?? "Dashboard"}
         </h1>
         <p className="text-xs text-muted-foreground">
-          Ivalora Gadget · Sistem Manajemen
+          Ivalora Gadget RMS (Retail Management System)
         </p>
       </div>
 

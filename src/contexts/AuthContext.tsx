@@ -31,39 +31,67 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchUserData = async (userId: string) => {
-    const [profileRes, roleRes] = await Promise.all([
-      supabase.from("user_profiles").select("status").eq("id", userId).single(),
-      supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle(),
-    ]);
-    setStatus((profileRes.data?.status as AccountStatus) ?? null);
-    setRole((roleRes.data?.role as AppRole) ?? null);
+    try {
+      const [profileRes, roleRes] = await Promise.all([
+        supabase.from("user_profiles").select("status").eq("id", userId).single(),
+        supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle(),
+      ]);
+      setStatus((profileRes.data?.status as AccountStatus) ?? null);
+      setRole((roleRes.data?.role as AppRole) ?? null);
+    } catch {
+      setStatus(null);
+      setRole(null);
+    }
   };
 
   useEffect(() => {
-    // Set up listener BEFORE calling getSession
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, sess) => {
-      setSession(sess);
-      setUser(sess?.user ?? null);
-      if (sess?.user) {
-        await fetchUserData(sess.user.id);
-      } else {
-        setStatus(null);
-        setRole(null);
-      }
-      setIsLoading(false);
-    });
+    let isMounted = true;
 
-    supabase.auth.getSession().then(({ data: { session: sess } }) => {
-      setSession(sess);
-      setUser(sess?.user ?? null);
-      if (sess?.user) {
-        fetchUserData(sess.user.id).finally(() => setIsLoading(false));
-      } else {
-        setIsLoading(false);
-      }
-    });
+    // ── Ongoing auth state changes (does NOT control isLoading) ──────────
+    // IMPORTANT: Never await Supabase calls directly inside onAuthStateChange
+    // as it causes deadlocks during token refresh. Use setTimeout to defer.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, sess) => {
+        if (!isMounted) return;
+        setSession(sess);
+        setUser(sess?.user ?? null);
 
-    return () => subscription.unsubscribe();
+        if (sess?.user) {
+          // Defer to avoid deadlock inside Supabase's internal lock
+          setTimeout(() => {
+            if (isMounted) fetchUserData(sess.user.id);
+          }, 0);
+        } else {
+          setStatus(null);
+          setRole(null);
+        }
+      }
+    );
+
+    // ── Initial load (controls isLoading) ────────────────────────────────
+    const initializeAuth = async () => {
+      try {
+        const { data: { session: sess } } = await supabase.auth.getSession();
+        if (!isMounted) return;
+
+        setSession(sess);
+        setUser(sess?.user ?? null);
+
+        if (sess?.user) {
+          // Await role/status fetch BEFORE releasing loading state
+          await fetchUserData(sess.user.id);
+        }
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    initializeAuth();
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {
