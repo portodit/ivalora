@@ -337,7 +337,6 @@ export default function MasterProductsPage() {
                 <TableHead className="font-semibold text-xs uppercase tracking-widest w-24 text-center">Storage</TableHead>
                 <TableHead className="font-semibold text-xs uppercase tracking-widest">Warna</TableHead>
                 <TableHead className="font-semibold text-xs uppercase tracking-widest">Garansi</TableHead>
-                <TableHead className="font-semibold text-xs uppercase tracking-widest text-right">Harga Ref.</TableHead>
                 <TableHead className="font-semibold text-xs uppercase tracking-widest w-20 text-center">Status</TableHead>
                 <TableHead className="font-semibold text-xs uppercase tracking-widest w-32 text-center">Aksi</TableHead>
               </TableRow>
@@ -345,7 +344,7 @@ export default function MasterProductsPage() {
             <TableBody>
               {loading ? renderSkeleton() : error ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="py-16 text-center">
+                  <TableCell colSpan={7} className="py-16 text-center">
                     <div className="flex flex-col items-center gap-2 text-destructive">
                       <AlertCircle className="w-8 h-8" />
                       <p className="text-sm font-medium">Gagal memuat data</p>
@@ -356,7 +355,7 @@ export default function MasterProductsPage() {
                 </TableRow>
               ) : products.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="py-20 text-center">
+                  <TableCell colSpan={7} className="py-20 text-center">
                     <div className="flex flex-col items-center gap-3 text-muted-foreground">
                       <PackageOpen className="w-12 h-12 opacity-30" />
                       <div>
@@ -396,7 +395,6 @@ export default function MasterProductsPage() {
                     <TableCell className="text-center text-sm">{formatStorage(p.storage_gb)}</TableCell>
                     <TableCell className="text-sm">{p.color}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{getWarrantyLabel(p.warranty_type)}</TableCell>
-                    <TableCell className="text-right text-sm font-medium">{formatPrice(p.base_price)}</TableCell>
                     <TableCell className="text-center">
                       <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${
                         p.is_active

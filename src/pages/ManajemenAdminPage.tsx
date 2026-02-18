@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
   Users, UserCheck, Search, RefreshCw, ChevronDown,
   CheckCircle2, XCircle, Clock, Ban, Shield, X, Mail,
-  MoreHorizontal, AlertTriangle, KeyRound, Eye,
+  MoreHorizontal, AlertTriangle, KeyRound, Eye, UserPlus,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -143,6 +143,7 @@ function DaftarAdminTab() {
     type: "suspend" | "activate" | "role" | "reset_password";
     user: AdminUser;
   } | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -254,7 +255,7 @@ function DaftarAdminTab() {
             className="pl-9 h-9 text-sm"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <select
             value={filterRole}
             onChange={(e) => setFilterRole(e.target.value)}
@@ -279,6 +280,10 @@ function DaftarAdminTab() {
           <Button variant="outline" size="sm" className="h-9 gap-1.5 shrink-0" onClick={fetchUsers}>
             <RefreshCw className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Segarkan</span>
+          </Button>
+          <Button size="sm" className="h-9 gap-1.5 shrink-0" onClick={() => setShowCreateModal(true)}>
+            <UserPlus className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Tambah Akun</span>
           </Button>
         </div>
       </div>
@@ -438,6 +443,130 @@ function DaftarAdminTab() {
           onClose={() => setActionModal(null)}
         />
       )}
+
+      {/* Create account modal */}
+      {showCreateModal && (
+        <CreateAccountModal
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={() => { setShowCreateModal(false); fetchUsers(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── CreateAccountModal ────────────────────────────────────────────────────────
+function CreateAccountModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  const { toast } = useToast();
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState<"admin" | "super_admin">("admin");
+  const [creating, setCreating] = useState(false);
+
+  const handleCreate = async () => {
+    if (!email.trim() || !password.trim()) {
+      toast({ title: "Email dan password wajib diisi.", variant: "destructive" });
+      return;
+    }
+    if (password.length < 8) {
+      toast({ title: "Password minimal 8 karakter.", variant: "destructive" });
+      return;
+    }
+    setCreating(true);
+    const { error } = await supabase.functions.invoke("create-admin-account", {
+      body: { full_name: fullName.trim() || undefined, email: email.trim(), password, role },
+    });
+    setCreating(false);
+    if (error) {
+      toast({ title: "Gagal membuat akun", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Akun berhasil dibuat.", description: `${email} sudah bisa login sebagai ${role === "super_admin" ? "Super Admin" : "Admin"}.` });
+      onSuccess();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative z-10 bg-card rounded-2xl border border-border shadow-2xl w-full max-w-md">
+        {/* Header */}
+        <div className="flex items-start justify-between px-6 pt-6 pb-4 border-b border-border">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+              <UserPlus className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-foreground">Tambah Akun Baru</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">Akun langsung aktif tanpa verifikasi email.</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-accent ml-3 shrink-0">
+            <X className="w-4 h-4 text-muted-foreground" />
+          </button>
+        </div>
+
+        <div className="px-6 py-5 space-y-4">
+          {/* Role selector */}
+          <div className="grid grid-cols-2 gap-2">
+            {(["admin", "super_admin"] as const).map((r) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => setRole(r)}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all",
+                  role === r
+                    ? "border-primary bg-primary/5 text-foreground"
+                    : "border-border bg-card text-muted-foreground hover:bg-accent"
+                )}
+              >
+                <Shield className={cn("w-3.5 h-3.5 shrink-0", role === r ? "text-primary" : "text-muted-foreground")} />
+                {r === "super_admin" ? "Super Admin" : "Admin"}
+              </button>
+            ))}
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-foreground block mb-1.5">Nama Lengkap <span className="text-muted-foreground font-normal">(opsional)</span></label>
+            <Input
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Masukkan nama lengkap…"
+              className="h-9 text-sm"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-foreground block mb-1.5">Email <span className="text-destructive">*</span></label>
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Masukkan alamat email…"
+              className="h-9 text-sm"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-foreground block mb-1.5">Password <span className="text-destructive">*</span></label>
+            <Input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Min. 8 karakter…"
+              className="h-9 text-sm"
+            />
+            <p className="text-[10px] text-muted-foreground mt-1">Minimal 8 karakter. Sampaikan password ini ke pengguna secara aman.</p>
+          </div>
+        </div>
+
+        <div className="flex gap-2 px-6 pb-6">
+          <Button variant="outline" className="flex-1 h-9 text-sm" onClick={onClose}>Batal</Button>
+          <Button className="flex-1 h-9 text-sm gap-1.5" onClick={handleCreate} disabled={creating}>
+            {creating ? <div className="w-3.5 h-3.5 border border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" /> : <UserPlus className="w-3.5 h-3.5" />}
+            Buat Akun
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
