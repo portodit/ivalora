@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Clock, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,33 @@ import { useAuth } from "@/contexts/AuthContext";
 import logoFull from "@/assets/logo-full.svg";
 
 export default function WaitingApprovalPage() {
-  const { user, signOut } = useAuth();
+  const { user, status, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  // Poll status every 10s — redirect to dashboard once approved
+  useEffect(() => {
+    if (!user) return;
+    const check = async () => {
+      const { data } = await supabase
+        .from("user_profiles")
+        .select("status")
+        .eq("id", user.id)
+        .single();
+      if (data?.status === "active") {
+        // Reload auth context by refreshing session
+        await supabase.auth.refreshSession();
+        navigate("/", { replace: true });
+      }
+    };
+    check();
+    const interval = setInterval(check, 10000);
+    return () => clearInterval(interval);
+  }, [user, navigate]);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/login", { replace: true });
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8">
@@ -54,7 +81,7 @@ export default function WaitingApprovalPage() {
         <Button
           variant="outline"
           className="w-full h-11"
-          onClick={signOut}
+          onClick={handleSignOut}
         >
           Keluar dari akun ini
         </Button>
@@ -62,3 +89,4 @@ export default function WaitingApprovalPage() {
     </div>
   );
 }
+
