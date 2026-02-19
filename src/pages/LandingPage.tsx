@@ -17,6 +17,7 @@ import uvpQuality from "@/assets/uvp-quality.png";
 import uvpGaransi from "@/assets/uvp-garansi.png";
 import uvpHarga from "@/assets/uvp-harga.png";
 import uvpCicilan from "@/assets/uvp-cicilan.png";
+import heroBg from "@/assets/hero-bg.jpg";
 
 function formatRupiah(n: number) {
   return "Rp " + n.toLocaleString("id-ID");
@@ -34,39 +35,14 @@ interface Product {
   rating_score: number | null;
   free_shipping: boolean;
   spec_warranty_duration: string | null;
+  product_id: string;
 }
 
-// ─── Hero slides ─────────────────────────────────────────────────────────────
-const HERO_SLIDES = [
-  {
-    img: iphone13Pro,
-    tag: "iPhone 13 Pro",
-    headline: "Pusat Jual Beli",
-    accent: "iPhone Terpercaya",
-    sub: "Unit bergaransi, IMEI aman, dan telah melalui quality control ketat sebelum sampai ke tangan Anda.",
-  },
-  {
-    img: iphone13,
-    tag: "iPhone 13",
-    headline: "Stok Terlengkap",
-    accent: "Surabaya & Sekitarnya",
-    sub: "Dari iPhone 11 hingga seri terbaru, semua tersedia dengan pilihan warna dan kapasitas lengkap.",
-  },
-  {
-    img: iphone11Pro,
-    tag: "iPhone 11 Pro",
-    headline: "Harga Transparan,",
-    accent: "Tanpa Biaya Tersembunyi",
-    sub: "Harga tertera sudah final. Kondisi unit dijelaskan jujur — tidak ada yang kami sembunyikan.",
-  },
-  {
-    img: iphone11,
-    tag: "iPhone 11",
-    headline: "Belanja Tenang,",
-    accent: "Garansi Toko 1 Bulan",
-    sub: "Setiap pembelian dilindungi garansi toko. Jika ada masalah, tim kami siap menangani langsung.",
-  },
-];
+interface StockPriceInfo {
+  product_id: string;
+  min_price: number | null;
+  max_price: number | null;
+}
 
 // ─── iPhone category cards ────────────────────────────────────────────────────
 const IPHONE_CATEGORIES = [
@@ -79,7 +55,6 @@ const IPHONE_CATEGORIES = [
 // ─── UVP cards ────────────────────────────────────────────────────────────────
 const UVP_CARDS = [
   {
-    icon: Shield,
     emoji: "✅",
     title: "Premium Quality",
     short: "QC ketat di 30+ checkpoint",
@@ -87,7 +62,6 @@ const UVP_CARDS = [
     img: uvpQuality,
   },
   {
-    icon: Shield,
     emoji: "🛡️",
     title: "Free Garansi Unit",
     short: "Garansi toko berlaku penuh",
@@ -95,7 +69,6 @@ const UVP_CARDS = [
     img: uvpGaransi,
   },
   {
-    icon: Banknote,
     emoji: "💰",
     title: "Jaminan Harga Terbaik",
     short: "Harga pasar, transparan, no hidden fee",
@@ -103,12 +76,24 @@ const UVP_CARDS = [
     img: uvpHarga,
   },
   {
-    icon: CreditCard,
     emoji: "💳",
     title: "Cicilan Mudah & Aman",
     short: "Tersedia via Shopee & Tokopedia",
     desc: "Pembelian tersedia melalui marketplace resmi seperti Shopee dan Tokopedia dengan sistem pembayaran aman, termasuk opsi cicilan sesuai ketentuan platform.",
     img: uvpCicilan,
+  },
+];
+
+// ─── Store branches ───────────────────────────────────────────────────────────
+const BRANCHES = [
+  {
+    id: "sukodono",
+    name: "Ivalora Gadget — Sukodono",
+    address: "Jl. Raya Sukodono, Sidoarjo, Jawa Timur",
+    hours: "Senin – Sabtu: 09.00 – 20.00 WIB",
+    phone: "0858-9002-4760",
+    mapSrc: "https://maps.google.com/maps?q=-7.293936,112.814863&z=16&output=embed",
+    mapsUrl: "https://maps.app.goo.gl/Qep4kZ3rViH2XWRZ6",
   },
 ];
 
@@ -145,12 +130,12 @@ function CountdownBlock({ val, label }: { val: number; label: string }) {
   return (
     <div className="flex flex-col items-center">
       <div
-        className="rounded-xl w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center text-xl sm:text-2xl font-bold tabular-nums"
-        style={{ background: "hsl(0 0% 15%)", color: "hsl(38 92% 50%)" }}
+        className="rounded-lg w-11 h-11 sm:w-13 sm:h-13 flex items-center justify-center text-lg sm:text-xl font-bold tabular-nums"
+        style={{ background: "hsl(0 0% 100% / 0.08)", color: "hsl(38 92% 50%)", border: "1px solid hsl(0 0% 100% / 0.1)" }}
       >
         {String(val).padStart(2, "0")}
       </div>
-      <span className="text-[9px] sm:text-[10px] mt-1 uppercase tracking-wider" style={{ color: "hsl(0 0% 50%)" }}>
+      <span className="text-[9px] mt-1 uppercase tracking-widest" style={{ color: "hsl(0 0% 40%)" }}>
         {label}
       </span>
     </div>
@@ -162,79 +147,114 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [highlight, setHighlight] = useState<Product[]>([]);
+  const [stockPrices, setStockPrices] = useState<StockPriceInfo[]>([]);
   const { h, m, s } = useCountdown(22);
-  const [heroIdx, setHeroIdx] = useState(0);
   const [activeUvp, setActiveUvp] = useState(0);
+  const [activeBranch, setActiveBranch] = useState(0);
   const uvpImgRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     (async () => {
       const { data } = await supabase
         .from("catalog_products")
-        .select("id, display_name, slug, thumbnail_url, override_display_price, highlight_product, promo_badge, promo_label, rating_score, free_shipping, spec_warranty_duration")
+        .select("id, display_name, slug, thumbnail_url, override_display_price, highlight_product, promo_badge, promo_label, rating_score, free_shipping, spec_warranty_duration, product_id")
         .eq("catalog_status", "published")
         .eq("publish_to_web", true)
         .limit(12);
       if (data) {
         setHighlight(data.filter((p) => p.highlight_product).slice(0, 4));
         setProducts(data.slice(0, 8));
+
+        // Fetch min/max stock prices for each product
+        const productIds = data.map((p) => p.product_id);
+        if (productIds.length > 0) {
+          const { data: stockData } = await supabase
+            .from("stock_units")
+            .select("product_id, selling_price")
+            .in("product_id", productIds)
+            .eq("stock_status", "available")
+            .not("selling_price", "is", null);
+
+          if (stockData) {
+            const priceMap: Record<string, { min: number; max: number }> = {};
+            for (const unit of stockData) {
+              if (!unit.selling_price) continue;
+              if (!priceMap[unit.product_id]) {
+                priceMap[unit.product_id] = { min: unit.selling_price, max: unit.selling_price };
+              } else {
+                priceMap[unit.product_id].min = Math.min(priceMap[unit.product_id].min, unit.selling_price);
+                priceMap[unit.product_id].max = Math.max(priceMap[unit.product_id].max, unit.selling_price);
+              }
+            }
+            setStockPrices(
+              Object.entries(priceMap).map(([product_id, { min, max }]) => ({
+                product_id,
+                min_price: min,
+                max_price: max,
+              }))
+            );
+          }
+        }
       }
     })();
   }, []);
 
-  useEffect(() => {
-    const t = setInterval(() => setHeroIdx((i) => (i + 1) % HERO_SLIDES.length), 4000);
-    return () => clearInterval(t);
-  }, []);
-
-  const slide = HERO_SLIDES[heroIdx];
+  const branch = BRANCHES[activeBranch];
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <PublicNavbar />
 
       {/* ══════════════════════════════════════════════════════════════
-          HERO — Black gradient, Apple-style
+          HERO — Full bleed photo background, dark left overlay
       ══════════════════════════════════════════════════════════════ */}
-      <section
-        className="relative overflow-hidden flex items-center min-h-[92vh]"
-        style={{ background: "linear-gradient(160deg, hsl(0 0% 6%) 0%, hsl(220 20% 8%) 50%, hsl(0 0% 4%) 100%)" }}
-      >
-        {/* Subtle noise texture */}
-        <div className="absolute inset-0 opacity-[0.025]"
+      <section className="relative overflow-hidden flex items-center min-h-[92vh]">
+        {/* Background photo */}
+        <img
+          src={heroBg}
+          alt="Hero"
+          className="absolute inset-0 w-full h-full object-cover object-center"
+          style={{ transform: "scaleX(-1)" }}
+        />
+        {/* Dark gradient left-to-right overlay — text readable on left */}
+        <div
+          className="absolute inset-0"
           style={{
-            backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E\")",
+            background:
+              "linear-gradient(90deg, hsl(0 0% 3% / 0.97) 0%, hsl(0 0% 5% / 0.88) 30%, hsl(0 0% 8% / 0.55) 60%, hsl(0 0% 0% / 0.1) 100%)",
           }}
         />
-        {/* Glow accent — top right */}
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full opacity-[0.06] blur-[120px]"
-          style={{ background: "hsl(210 100% 60%)" }} />
-        {/* Bottom left glow */}
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full opacity-[0.04] blur-[100px]"
-          style={{ background: "hsl(38 92% 50%)" }} />
+        {/* Top vignette */}
+        <div className="absolute inset-x-0 top-0 h-32"
+          style={{ background: "linear-gradient(180deg, hsl(0 0% 3% / 0.7) 0%, transparent 100%)" }} />
+        {/* Bottom vignette */}
+        <div className="absolute inset-x-0 bottom-0 h-32"
+          style={{ background: "linear-gradient(0deg, hsl(0 0% 3% / 0.8) 0%, transparent 100%)" }} />
 
-        <div className="max-w-6xl mx-auto px-6 w-full grid lg:grid-cols-2 gap-12 items-center py-28 lg:py-0">
-          {/* Text */}
-          <div className="space-y-8 relative z-10 order-2 lg:order-1">
-            {/* Series tag */}
+        <div className="max-w-6xl mx-auto px-6 w-full py-28 relative z-10">
+          <div className="max-w-xl space-y-8">
+            {/* Tag */}
             <div
-              className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-widest transition-all duration-500"
-              style={{ background: "hsl(0 0% 100% / 0.06)", border: "1px solid hsl(0 0% 100% / 0.1)", color: "hsl(0 0% 70%)" }}
+              className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-widest"
+              style={{ background: "hsl(0 0% 100% / 0.07)", border: "1px solid hsl(0 0% 100% / 0.12)", color: "hsl(0 0% 70%)" }}
             >
               <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "hsl(142 71% 45%)" }} />
-              {slide.tag} · Stok Tersedia
+              🔥 Stok Selalu Tersedia
             </div>
 
-            <div className="space-y-3">
-              <h1 className="text-4xl md:text-5xl xl:text-6xl font-bold leading-[1.08] tracking-tight text-white">
-                {slide.headline}<br />
-                <span className="text-transparent bg-clip-text"
-                  style={{ backgroundImage: "linear-gradient(90deg, hsl(210 100% 70%), hsl(197 100% 75%))" }}>
-                  {slide.accent}
-                </span>
+            <div className="space-y-4">
+              <h1 className="text-4xl md:text-5xl xl:text-[3.6rem] font-bold leading-[1.07] tracking-tight text-white">
+                Pusat Jual Beli<br />
+                <span
+                  className="text-transparent bg-clip-text"
+                  style={{ backgroundImage: "linear-gradient(90deg, hsl(0 0% 100%), hsl(0 0% 70%))" }}
+                >
+                  iPhone Resmi
+                </span>{" "}
+                <span className="text-white">Surabaya.</span>
               </h1>
-              <p className="text-base md:text-lg leading-relaxed max-w-md" style={{ color: "hsl(0 0% 55%)" }}>
-                {slide.sub}
+              <p className="text-base md:text-lg leading-relaxed max-w-md" style={{ color: "hsl(0 0% 58%)" }}>
+                Unit bergaransi, IMEI terdaftar, kondisi transparan. Ribuan pelanggan sudah mempercayakan pembelian iPhone mereka ke Ivalora.
               </p>
             </div>
 
@@ -245,22 +265,22 @@ export default function LandingPage() {
                 style={{ background: "hsl(0 0% 100%)", color: "hsl(0 0% 8%)" }}
                 onClick={() => navigate("/katalog")}
               >
-                Lihat Produk <ArrowRight className="w-4 h-4" />
+                Lihat Katalog <ArrowRight className="w-4 h-4" />
               </Button>
               <Button
                 size="lg"
                 className="rounded-xl gap-2 px-7 h-12 font-medium"
-                style={{ background: "hsl(0 0% 100% / 0.08)", border: "1px solid hsl(0 0% 100% / 0.12)", color: "hsl(0 0% 85%)" }}
+                style={{ background: "hsl(0 0% 100% / 0.08)", border: "1px solid hsl(0 0% 100% / 0.15)", color: "hsl(0 0% 85%)" }}
                 onClick={() => window.open("https://wa.me/6285890024760", "_blank")}
               >
-                <MessageCircle className="w-4 h-4" /> Chat Admin
+                <MessageCircle className="w-4 h-4" /> Konsultasi Gratis
               </Button>
             </div>
 
             {/* Stats */}
             <div className="flex items-center gap-8 pt-2">
               {[
-                { val: "5.000+", label: "Pelanggan" },
+                { val: "5.000+", label: "Pelanggan Puas" },
                 { val: "10.000+", label: "Unit Terjual" },
                 { val: "4.9★", label: "Rating Toko" },
               ].map((stat) => (
@@ -270,49 +290,12 @@ export default function LandingPage() {
                 </div>
               ))}
             </div>
-
-            {/* Slide dots */}
-            <div className="flex items-center gap-2">
-              {HERO_SLIDES.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setHeroIdx(i)}
-                  className="rounded-full transition-all duration-300"
-                  style={{
-                    width: i === heroIdx ? 28 : 8,
-                    height: 8,
-                    background: i === heroIdx ? "hsl(0 0% 100%)" : "hsl(0 0% 30%)",
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Phone image */}
-          <div className="relative flex justify-center items-center h-[400px] md:h-[500px] order-1 lg:order-2">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-64 h-64 rounded-full blur-[80px] opacity-20"
-                style={{ background: "hsl(210 100% 60%)" }} />
-            </div>
-            {HERO_SLIDES.map((sl, i) => (
-              <img
-                key={i}
-                src={sl.img}
-                alt={sl.tag}
-                className="absolute bottom-0 max-h-[460px] w-auto object-contain transition-all duration-700 ease-in-out"
-                style={{
-                  opacity: i === heroIdx ? 1 : 0,
-                  transform: i === heroIdx ? "scale(1) translateY(0)" : "scale(0.95) translateY(16px)",
-                  filter: "drop-shadow(0 40px 60px hsl(210 100% 30% / 0.3))",
-                }}
-              />
-            ))}
           </div>
         </div>
       </section>
 
       {/* ══════════════════════════════════════════════════════════════
-          IPHONE CATEGORY — Horizontal scroll
+          KOLEKSI PILIHAN — Horizontal scroll (above Produk Unggulan)
       ══════════════════════════════════════════════════════════════ */}
       <section className="py-14 px-6">
         <div className="max-w-6xl mx-auto">
@@ -320,6 +303,7 @@ export default function LandingPage() {
             <div>
               <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground mb-1">Koleksi Pilihan</p>
               <h2 className="text-2xl font-bold">iPhone Tersedia</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">Unit terpilih, kualitas terjamin, harga terbaik</p>
             </div>
             <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground" onClick={() => navigate("/katalog")}>
               Lihat Semua <ChevronRight className="w-3.5 h-3.5" />
@@ -333,7 +317,6 @@ export default function LandingPage() {
                 onClick={() => navigate("/katalog")}
                 className="snap-start shrink-0 w-52 md:w-60 rounded-2xl overflow-hidden border border-border cursor-pointer group hover:border-foreground/30 transition-all duration-300 hover:shadow-lg bg-card"
               >
-                {/* Image bg */}
                 <div className="relative h-52 bg-secondary/40 flex items-end justify-center overflow-hidden">
                   <div className="absolute inset-0"
                     style={{ background: "linear-gradient(180deg, transparent 40%, hsl(0 0% 0% / 0.5) 100%)" }} />
@@ -361,18 +344,47 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════════════════════════════════════════════════════════
-          WHY IVALORA — 2-column interactive cards
+          PRODUK UNGGULAN — 1 row horizontal scroll
       ══════════════════════════════════════════════════════════════ */}
-      <section className="py-20 px-6" style={{ background: "hsl(0 0% 98%)" }}>
+      <section className="py-8 pb-16 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+            <div>
+              <h2 className="text-2xl font-bold">Produk Unggulan</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">Unit terbaik yang paling banyak diminati</p>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => navigate("/katalog")} className="gap-1.5 rounded-xl">
+              Semua Produk <ChevronRight className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+          {/* Single-row horizontal scroll */}
+          <div className="flex gap-4 overflow-x-auto pb-3 -mx-1 px-1 scrollbar-hide snap-x snap-mandatory">
+            {products.length > 0
+              ? products.map((p) => (
+                  <div key={p.id} className="snap-start shrink-0 w-56 md:w-64">
+                    <ProductCard product={p} stockPrices={stockPrices} />
+                  </div>
+                ))
+              : Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="snap-start shrink-0 w-56 md:w-64">
+                    <SkeletonCard />
+                  </div>
+                ))
+            }
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════
+          KENAPA IVALORA — 2-column interactive cards
+      ══════════════════════════════════════════════════════════════ */}
+      <section className="py-20 px-6" style={{ background: "hsl(0 0% 97%)" }}>
         <div className="max-w-6xl mx-auto">
           <div className="mb-12">
             <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground mb-2">Kenapa Ivalora?</p>
             <h2 className="text-3xl md:text-4xl font-bold leading-tight">
-              Belanja iPhone yang<br />
-              <span className="text-transparent bg-clip-text"
-                style={{ backgroundImage: "linear-gradient(90deg, hsl(0 0% 10%), hsl(0 0% 40%))" }}>
-                Jujur dan Terukur
-              </span>
+              Beli iPhone dengan Tenang,<br />
+              <span style={{ color: "hsl(0 0% 45%)" }}>Tanpa Tanda Tanya.</span>
             </h2>
           </div>
 
@@ -433,38 +445,51 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════════════════════════════════════════════════════════
-          FLASH SALE — redesigned
+          FLASH SALE
       ══════════════════════════════════════════════════════════════ */}
       <section className="py-16 px-6">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div
             className="rounded-2xl p-6 md:p-8 mb-8 relative overflow-hidden"
-            style={{ background: "linear-gradient(135deg, hsl(0 0% 7%) 0%, hsl(220 25% 10%) 100%)" }}
+            style={{ background: "linear-gradient(135deg, hsl(0 0% 6%) 0%, hsl(15 60% 8%) 50%, hsl(0 0% 5%) 100%)" }}
           >
-            <div className="absolute top-0 right-0 w-64 h-64 rounded-full blur-[80px] opacity-10"
+            {/* Glow accents */}
+            <div className="absolute top-0 right-1/4 w-48 h-48 rounded-full blur-[70px] opacity-15"
+              style={{ background: "hsl(15 90% 55%)" }} />
+            <div className="absolute bottom-0 right-0 w-64 h-40 rounded-full blur-[80px] opacity-10"
               style={{ background: "hsl(38 92% 50%)" }} />
+
             <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
               <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">⚡</span>
-                  <h2 className="text-2xl md:text-3xl font-bold text-white">Flash Sale</h2>
-                  <span
-                    className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-md"
-                    style={{ background: "hsl(38 92% 50%)", color: "hsl(0 0% 10%)" }}
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wider"
+                    style={{ background: "hsl(15 90% 55%)", color: "hsl(0 0% 100%)" }}
                   >
-                    HARI INI
+                    <Zap className="w-3 h-3" /> Flash Sale
+                  </div>
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full"
+                    style={{ background: "hsl(38 92% 50% / 0.15)", color: "hsl(38 92% 55%)", border: "1px solid hsl(38 92% 50% / 0.25)" }}>
+                    Hari Ini Saja
                   </span>
                 </div>
-                <p className="text-sm" style={{ color: "hsl(0 0% 50%)" }}>Penawaran terbatas, stok cepat habis</p>
+                <h2 className="text-2xl md:text-3xl font-bold text-white mt-2">
+                  Penawaran Terbatas,<br />
+                  <span style={{ color: "hsl(38 92% 55%)" }}>Stok Cepat Habis.</span>
+                </h2>
+                <p className="text-sm" style={{ color: "hsl(0 0% 45%)" }}>
+                  Harga spesial berlaku sampai pukul 22:00 WIB
+                </p>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1.5">
+              <div className="flex flex-col items-start sm:items-end gap-2">
+                <p className="text-xs uppercase tracking-widest" style={{ color: "hsl(0 0% 40%)" }}>Berakhir dalam</p>
+                <div className="flex items-center gap-2">
                   <CountdownBlock val={h} label="Jam" />
-                  <span className="text-xl font-bold text-white pb-3">:</span>
-                  <CountdownBlock val={m} label="Mnt" />
-                  <span className="text-xl font-bold text-white pb-3">:</span>
-                  <CountdownBlock val={s} label="Dtk" />
+                  <span className="text-2xl font-bold pb-4" style={{ color: "hsl(38 92% 50%)" }}>:</span>
+                  <CountdownBlock val={m} label="Menit" />
+                  <span className="text-2xl font-bold pb-4" style={{ color: "hsl(38 92% 50%)" }}>:</span>
+                  <CountdownBlock val={s} label="Detik" />
                 </div>
               </div>
             </div>
@@ -473,7 +498,7 @@ export default function LandingPage() {
           {/* Product grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {(highlight.length ? highlight : products.slice(0, 4)).map((p) => (
-              <ProductCard key={p.id} product={p} isFlashSale />
+              <ProductCard key={p.id} product={p} isFlashSale stockPrices={stockPrices} />
             ))}
             {highlight.length === 0 && products.length === 0 &&
               Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
@@ -484,29 +509,6 @@ export default function LandingPage() {
             <Button variant="outline" className="rounded-xl gap-2 px-8" onClick={() => navigate("/katalog")}>
               Lihat Semua Produk <ArrowRight className="w-4 h-4" />
             </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════════════════════════
-          PRODUK UNGGULAN
-      ══════════════════════════════════════════════════════════════ */}
-      <section className="py-8 pb-20 px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-            <div>
-              <h2 className="text-2xl font-bold">Produk Unggulan</h2>
-              <p className="text-sm text-muted-foreground mt-0.5">Unit terpilih, kualitas terjamin, harga terbaik</p>
-            </div>
-            <Button variant="outline" size="sm" onClick={() => navigate("/katalog")} className="gap-1.5 rounded-xl">
-              Semua Produk <ChevronRight className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {products.length > 0
-              ? products.map((p) => <ProductCard key={p.id} product={p} />)
-              : Array.from({ length: 8 }).map((_, i) => <SkeletonCard key={i} />)
-            }
           </div>
         </div>
       </section>
@@ -558,44 +560,94 @@ export default function LandingPage() {
       </section>
 
       {/* ══════════════════════════════════════════════════════════════
-          OFFLINE STORE
+          TOKO FISIK — Card-based branches with map focus
       ══════════════════════════════════════════════════════════════ */}
-      <section className="py-20 px-6 bg-secondary/40" id="tentang">
-        <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-10 items-center">
-          <div className="space-y-6">
-            <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Toko Fisik</p>
-            <h2 className="text-3xl font-bold leading-tight">Kunjungi Langsung<br />di Surabaya</h2>
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              Ingin melihat kondisi unit secara langsung sebelum beli? Toko kami terbuka setiap hari — tim kami siap membantu Anda memilih iPhone yang paling sesuai.
+      <section className="py-20 px-6" style={{ background: "hsl(0 0% 97%)" }} id="tentang">
+        <div className="max-w-6xl mx-auto">
+          <div className="mb-10">
+            <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground mb-2">Toko Fisik</p>
+            <h2 className="text-3xl font-bold leading-tight">
+              Temui Kami Langsung.<br />
+              <span style={{ color: "hsl(0 0% 45%)" }}>Lihat, Coba, Baru Beli.</span>
+            </h2>
+            <p className="text-muted-foreground text-sm leading-relaxed mt-3 max-w-xl">
+              Ingin melihat kondisi unit secara langsung sebelum memutuskan? Datangi toko kami — tim kami siap membantu tanpa tekanan.
             </p>
+          </div>
+
+          <div className="grid lg:grid-cols-[2fr_3fr] gap-6 items-start">
+            {/* Left — branch cards */}
             <div className="space-y-3">
-              {[
-                { icon: MapPin, text: "Jl. Raya Sukodono — Sidoarjo, Jawa Timur" },
-                { icon: Clock, text: "Senin – Sabtu: 09.00 – 20.00 WIB" },
-                { icon: Phone, text: "0858-9002-4760" },
-              ].map(({ icon: Icon, text }) => (
-                <div key={text} className="flex items-center gap-3 text-sm text-muted-foreground">
-                  <div className="w-9 h-9 rounded-lg bg-foreground/5 flex items-center justify-center shrink-0">
-                    <Icon className="w-4 h-4 text-foreground" />
+              {BRANCHES.map((br, i) => (
+                <button
+                  key={br.id}
+                  onClick={() => setActiveBranch(i)}
+                  className="w-full text-left rounded-2xl p-5 border transition-all duration-200"
+                  style={{
+                    background: activeBranch === i ? "hsl(0 0% 8%)" : "hsl(0 0% 100%)",
+                    borderColor: activeBranch === i ? "hsl(0 0% 8%)" : "hsl(214 32% 91%)",
+                    boxShadow: activeBranch === i ? "0 8px 24px hsl(0 0% 0% / 0.15)" : "none",
+                  }}
+                >
+                  <div className="flex items-start gap-4">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                      style={{
+                        background: activeBranch === i ? "hsl(0 0% 100% / 0.1)" : "hsl(0 0% 96%)",
+                      }}
+                    >
+                      <MapPin className="w-5 h-5" style={{ color: activeBranch === i ? "hsl(0 0% 80%)" : "hsl(0 0% 30%)" }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm"
+                        style={{ color: activeBranch === i ? "hsl(0 0% 100%)" : "hsl(0 0% 10%)" }}>
+                        {br.name}
+                      </p>
+                      <p className="text-xs mt-1 leading-relaxed"
+                        style={{ color: activeBranch === i ? "hsl(0 0% 55%)" : "hsl(215 16% 47%)" }}>
+                        {br.address}
+                      </p>
+                      {activeBranch === i && (
+                        <div className="mt-3 space-y-1.5">
+                          <div className="flex items-center gap-2 text-xs" style={{ color: "hsl(0 0% 60%)" }}>
+                            <Clock className="w-3.5 h-3.5" /> {br.hours}
+                          </div>
+                          <div className="flex items-center gap-2 text-xs" style={{ color: "hsl(0 0% 60%)" }}>
+                            <Phone className="w-3.5 h-3.5" /> {br.phone}
+                          </div>
+                          <a
+                            href={br.mapsUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 mt-2 text-xs font-semibold"
+                            style={{ color: "hsl(210 100% 65%)" }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <ArrowRight className="w-3 h-3" /> Buka di Google Maps
+                          </a>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  {text}
-                </div>
+                </button>
               ))}
             </div>
-            <Button variant="outline" className="rounded-xl gap-2"
-              onClick={() => window.open("https://maps.app.goo.gl/Qep4kZ3rViH2XWRZ6", "_blank")}>
-              <MapPin className="w-4 h-4" /> Lihat di Google Maps
-            </Button>
-          </div>
-          <div className="rounded-2xl overflow-hidden border border-border shadow-sm h-72 lg:h-80">
-            <iframe
-              title="Lokasi Ivalora Gadget"
-              className="w-full h-full"
-              style={{ border: 0 }}
-              loading="lazy"
-              allowFullScreen
-              src="https://www.google.com/maps/embed/v1/place?key=AIzaSyD-9tSrke72PouQMnMX-a7eZSW0jkFMBWY&q=-7.293936,112.814863&zoom=16"
-            />
+
+            {/* Right — embedded map (no API key, just q= param) */}
+            <div className="rounded-2xl overflow-hidden sticky top-24"
+              style={{ height: 340, border: "1px solid hsl(214 32% 91%)" }}>
+              {BRANCHES.map((br, i) => (
+                <iframe
+                  key={br.id}
+                  title={br.name}
+                  className="w-full h-full transition-opacity duration-500"
+                  style={{ border: 0, opacity: activeBranch === i ? 1 : 0, position: activeBranch === i ? "relative" : "absolute" }}
+                  loading="lazy"
+                  allowFullScreen
+                  src={br.mapSrc}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -640,11 +692,11 @@ export default function LandingPage() {
           <p className="text-xs uppercase tracking-[0.25em]" style={{ color: "hsl(0 0% 40%)" }}>Hubungi Kami</p>
           <h2 className="text-3xl md:text-4xl font-bold">Ada yang Ingin<br />Ditanyakan?</h2>
           <p className="text-base leading-relaxed" style={{ color: "hsl(0 0% 55%)" }}>
-            Tim kami aktif setiap hari dan siap membantu Anda menemukan iPhone yang tepat — sesuai budget, kondisi, dan kebutuhan.
+            Tim kami aktif setiap hari dan siap membantu Anda menemukan iPhone yang paling sesuai — berdasarkan budget, kondisi, dan kebutuhan nyata Anda.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Button size="lg" className="rounded-xl gap-2 font-semibold"
-              style={{ background: "hsl(0 0% 100%)", color: "hsl(0 0% 8%)" }}
+              style={{ background: "hsl(142 71% 40%)", color: "hsl(0 0% 100%)" }}
               onClick={() => window.open("https://wa.me/6285890024760", "_blank")}>
               <MessageCircle className="w-4 h-4" /> Chat via WhatsApp
             </Button>
@@ -692,10 +744,6 @@ export default function LandingPage() {
               <h4 className="text-sm font-semibold">Customer Service</h4>
               <p className="text-sm text-muted-foreground">0858-9002-4760</p>
               <p className="text-sm text-muted-foreground">Senin – Sabtu, 09.00 – 20.00 WIB</p>
-              <a href="https://wa.me/6285890024760" target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-sm font-medium hover:underline underline-offset-4">
-                <MessageCircle className="w-3.5 h-3.5" /> Chat di WhatsApp
-              </a>
             </div>
             <div className="space-y-3">
               <h4 className="text-sm font-semibold">Marketplace</h4>
@@ -722,18 +770,31 @@ export default function LandingPage() {
 }
 
 // ─── Product Card ─────────────────────────────────────────────────────────────
-function ProductCard({ product, isFlashSale }: { product: Product; isFlashSale?: boolean }) {
+function ProductCard({
+  product,
+  isFlashSale,
+  stockPrices,
+}: {
+  product: Product;
+  isFlashSale?: boolean;
+  stockPrices: StockPriceInfo[];
+}) {
   const navigate = useNavigate();
   const href = product.slug ? `/produk/${product.slug}` : "#";
 
-  // Simulate original price for flash sale (20-30% markup)
-  const salePrice = product.override_display_price;
-  const originalPrice = salePrice ? Math.round(salePrice * 1.22) : null;
+  // Prefer override_display_price, fall back to min stock price
+  const stockInfo = stockPrices.find((s) => s.product_id === product.product_id);
+  const displayPrice = product.override_display_price ?? stockInfo?.min_price ?? null;
+  const maxPrice = stockInfo?.max_price ?? null;
+  const hasRange = stockInfo && stockInfo.min_price !== stockInfo.max_price;
+
+  // For flash sale, simulate a "was" price if we have a real price
+  const flashOriginal = displayPrice ? Math.round(displayPrice * 1.18) : null;
 
   return (
     <div
       onClick={() => navigate(href)}
-      className="border border-border rounded-2xl overflow-hidden bg-card hover:shadow-lg transition-all duration-200 cursor-pointer group"
+      className="border border-border rounded-2xl overflow-hidden bg-card hover:shadow-lg transition-all duration-200 cursor-pointer group h-full"
     >
       {/* Thumbnail */}
       <div className="relative bg-secondary/30 h-44 flex items-center justify-center overflow-hidden">
@@ -751,7 +812,7 @@ function ProductCard({ product, isFlashSale }: { product: Product; isFlashSale?:
         {/* Flash sale badge */}
         {isFlashSale && (
           <span className="absolute top-2.5 left-2.5 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-lg flex items-center gap-1"
-            style={{ background: "hsl(0 0% 8%)", color: "hsl(38 92% 50%)" }}>
+            style={{ background: "hsl(15 90% 55%)", color: "hsl(0 0% 100%)" }}>
             <Zap className="w-2.5 h-2.5" /> FLASH
           </span>
         )}
@@ -763,15 +824,22 @@ function ProductCard({ product, isFlashSale }: { product: Product; isFlashSale?:
         )}
         {/* Free shipping */}
         {product.free_shipping && (
-          <span className="absolute top-2.5 right-2.5 text-[10px] font-bold px-2 py-1 rounded-lg"
+          <span className="absolute bottom-2.5 left-2.5 text-[10px] font-bold px-2 py-1 rounded-lg"
             style={{ background: "hsl(142 71% 45%)", color: "hsl(0 0% 100%)" }}>
             FREE ONGKIR
+          </span>
+        )}
+        {/* Diskon badge flash sale */}
+        {isFlashSale && displayPrice && flashOriginal && (
+          <span className="absolute top-2.5 right-2.5 text-[10px] font-black px-1.5 py-0.5 rounded-md"
+            style={{ background: "hsl(0 72% 50%)", color: "hsl(0 0% 100%)" }}>
+            HEMAT {Math.round(((flashOriginal - displayPrice) / flashOriginal) * 100)}%
           </span>
         )}
       </div>
 
       {/* Info */}
-      <div className="p-4 space-y-2">
+      <div className="p-4 space-y-1.5">
         <p className="text-[11px] font-medium text-muted-foreground line-clamp-1">
           {product.spec_warranty_duration ?? "Garansi Toko 1 Bulan"}
         </p>
@@ -785,22 +853,20 @@ function ProductCard({ product, isFlashSale }: { product: Product; isFlashSale?:
           </div>
         )}
         {/* Price */}
-        <div>
-          {salePrice ? (
+        <div className="pt-0.5">
+          {displayPrice ? (
             <>
-              {isFlashSale && originalPrice && (
-                <p className="text-xs text-muted-foreground line-through">{formatRupiah(originalPrice)}</p>
+              {isFlashSale && flashOriginal && (
+                <p className="text-xs text-muted-foreground line-through">{formatRupiah(flashOriginal)}</p>
               )}
-              <p className="text-base font-bold text-foreground">{formatRupiah(salePrice)}</p>
-              {isFlashSale && originalPrice && (
-                <span className="inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-md mt-0.5"
-                  style={{ background: "hsl(0 72% 95%)", color: "hsl(0 72% 40%)" }}>
-                  HEMAT {Math.round(((originalPrice - salePrice) / originalPrice) * 100)}%
-                </span>
-              )}
+              <p className="text-base font-bold text-foreground">
+                {hasRange && !isFlashSale
+                  ? `${formatRupiah(stockInfo!.min_price!)} – ${formatRupiah(maxPrice!)}`
+                  : formatRupiah(displayPrice)}
+              </p>
             </>
           ) : (
-            <p className="text-sm font-semibold text-muted-foreground italic">Tanya Harga</p>
+            <p className="text-sm font-semibold text-muted-foreground italic">Cek Harga →</p>
           )}
         </div>
         <Button
