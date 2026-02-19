@@ -32,7 +32,7 @@ export default function WaitingApprovalPage() {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate("/login", { replace: true });
+    navigate("/admin/login", { replace: true });
   };
 
   return (

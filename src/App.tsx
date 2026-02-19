@@ -7,11 +7,19 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import LoginPage from "./pages/auth/LoginPage";
-import RegisterPage from "./pages/auth/RegisterPage";
+
+// Admin auth pages
+import AdminLoginPage from "./pages/auth/AdminLoginPage";
+import AdminRegisterPage from "./pages/auth/AdminRegisterPage";
 import WaitingApprovalPage from "./pages/auth/WaitingApprovalPage";
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
+
+// Customer auth pages
+import CustomerLoginPage from "./pages/auth/CustomerLoginPage";
+import CustomerRegisterPage from "./pages/auth/CustomerRegisterPage";
+
+// Dashboard pages
 import MasterProductsPage from "./pages/MasterProductsPage";
 import StockIMEIPage from "./pages/StockIMEIPage";
 import StokOpnamePage from "./pages/StokOpnamePage";
@@ -22,8 +30,10 @@ import PengaturanPage from "./pages/PengaturanPage";
 import ActivityLogPage from "./pages/ActivityLogPage";
 import KatalogPage from "./pages/KatalogPage";
 import KatalogFormPage from "./pages/katalog/KatalogFormPage";
-import ProductDetailPage from "./pages/katalog/ProductDetailPage";
+
+// Public pages
 import ShopPage from "./pages/ShopPage";
+import ProductDetailPage from "./pages/katalog/ProductDetailPage";
 
 const queryClient = new QueryClient();
 
@@ -35,18 +45,22 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            {/* Public auth routes */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/waiting-approval" element={<WaitingApprovalPage />} />
-
-            {/* Public catalog/shop routes (no auth needed) */}
+            {/* ── Public shop routes ─────────────────────────────── */}
             <Route path="/katalog" element={<ShopPage />} />
             <Route path="/produk/:slug" element={<ProductDetailPage />} />
 
-            {/* Protected dashboard routes */}
+            {/* ── Customer auth routes ───────────────────────────── */}
+            <Route path="/login" element={<CustomerLoginPage />} />
+            <Route path="/register" element={<CustomerRegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+            {/* ── Admin auth routes (/admin/...) ─────────────────── */}
+            <Route path="/admin/login" element={<AdminLoginPage />} />
+            <Route path="/admin/register" element={<AdminRegisterPage />} />
+            <Route path="/waiting-approval" element={<WaitingApprovalPage />} />
+
+            {/* ── Protected dashboard routes ─────────────────────── */}
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/master-produk" element={<ProtectedRoute><MasterProductsPage /></ProtectedRoute>} />
             <Route path="/stok-imei" element={<ProtectedRoute><StockIMEIPage /></ProtectedRoute>} />
@@ -71,5 +85,3 @@ const App = () => (
 );
 
 export default App;
-
-
