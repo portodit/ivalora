@@ -102,44 +102,45 @@ export function PublicNavbar({
 
             {/* Right actions */}
             <div className="flex items-center gap-2 shrink-0 ml-8">
-              {/* Language switcher */}
+              {/* Language switcher — flag only */}
               <div className="relative hidden md:block" onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={() => { setLangOpen(!langOpen); setCurrOpen(false); }}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                  className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                  title={lang === "id" ? "Ganti bahasa" : "Change language"}
                 >
-                  <span className="text-base leading-none">{lang === "id" ? "🇮🇩" : "🇬🇧"}</span>
-                  <span className="text-xs font-medium uppercase">{lang}</span>
+                  <span className="text-lg leading-none">{lang === "id" ? "🇮🇩" : "🇬🇧"}</span>
                   <ChevronDown className={cn("w-3 h-3 transition-transform", langOpen && "rotate-180")} />
                 </button>
                 {langOpen && (
-                  <div className="absolute right-0 top-full mt-1.5 bg-white border border-border rounded-xl shadow-lg overflow-hidden py-1 min-w-[110px]">
-                    <button onClick={() => handleLang("id")} className={cn("flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-accent transition-colors", lang === "id" && "font-semibold text-foreground")}>
-                      <span>🇮🇩</span> Bahasa
+                  <div className="absolute right-0 top-full mt-1.5 bg-white border border-border rounded-xl shadow-lg overflow-hidden py-1 min-w-[130px]">
+                    <button onClick={() => handleLang("id")} className={cn("flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:bg-accent transition-colors", lang === "id" && "font-semibold text-foreground")}>
+                      <span className="text-base">🇮🇩</span> Bahasa Indonesia
                     </button>
-                    <button onClick={() => handleLang("en")} className={cn("flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-accent transition-colors", lang === "en" && "font-semibold text-foreground")}>
-                      <span>🇬🇧</span> English
+                    <button onClick={() => handleLang("en")} className={cn("flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:bg-accent transition-colors", lang === "en" && "font-semibold text-foreground")}>
+                      <span className="text-base">🇬🇧</span> English
                     </button>
                   </div>
                 )}
               </div>
 
-              {/* Currency switcher */}
+              {/* Currency switcher — symbol only */}
               <div className="relative hidden md:block" onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={() => { setCurrOpen(!currOpen); setLangOpen(false); }}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                  className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors font-semibold"
+                  title="Change currency"
                 >
-                  <span className="text-xs font-semibold">{currency}</span>
+                  <span className="text-sm">{currency === "IDR" ? "Rp" : "$"}</span>
                   <ChevronDown className={cn("w-3 h-3 transition-transform", currOpen && "rotate-180")} />
                 </button>
                 {currOpen && (
-                  <div className="absolute right-0 top-full mt-1.5 bg-white border border-border rounded-xl shadow-lg overflow-hidden py-1 min-w-[90px]">
+                  <div className="absolute right-0 top-full mt-1.5 bg-white border border-border rounded-xl shadow-lg overflow-hidden py-1 min-w-[110px]">
                     <button onClick={() => handleCurrency("IDR")} className={cn("w-full px-3 py-2 text-sm text-left hover:bg-accent transition-colors", currency === "IDR" && "font-semibold text-foreground")}>
-                      IDR — Rp
+                      🇮🇩 IDR — Rp
                     </button>
                     <button onClick={() => handleCurrency("USD")} className={cn("w-full px-3 py-2 text-sm text-left hover:bg-accent transition-colors", currency === "USD" && "font-semibold text-foreground")}>
-                      USD — $
+                      🇺🇸 USD — $
                     </button>
                   </div>
                 )}
@@ -148,9 +149,6 @@ export function PublicNavbar({
               <div className="hidden md:flex items-center gap-2 ml-1">
                 <Button size="sm" onClick={() => navigate("/login")}>
                   {lang === "en" ? "Sign In" : "Masuk"}
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => navigate("/admin/login")}>
-                  Admin
                 </Button>
               </div>
 
@@ -190,9 +188,6 @@ export function PublicNavbar({
               <div className="pt-2 border-t border-border mt-2 flex flex-col gap-2">
                 <Button className="w-full" onClick={() => { setMobileOpen(false); navigate("/login"); }}>
                   {lang === "en" ? "Sign In" : "Masuk"}
-                </Button>
-                <Button variant="outline" className="w-full" onClick={() => { setMobileOpen(false); navigate("/admin/login"); }}>
-                  Admin
                 </Button>
               </div>
             </div>
