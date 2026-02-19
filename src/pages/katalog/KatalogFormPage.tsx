@@ -402,7 +402,7 @@ export default function KatalogFormPage() {
     });
 
     toast({ title: isEdit ? "Perubahan disimpan" : "Produk berhasil ditambahkan ke katalog" });
-    navigate("/katalog");
+    navigate("/admin/katalog");
   }
 
   async function handleDelete() {
@@ -414,7 +414,7 @@ export default function KatalogFormPage() {
       target_id: id, metadata: { display_name: displayName },
     });
     toast({ title: "Produk dihapus dari katalog" });
-    navigate("/katalog");
+    navigate("/admin/katalog");
   }
 
   if (loading) {
@@ -434,7 +434,7 @@ export default function KatalogFormPage() {
         {/* Header */}
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate("/katalog")}
+            onClick={() => navigate("/admin/katalog")}
             className="p-2 rounded-lg hover:bg-accent transition-colors text-muted-foreground"
           >
             <ChevronLeft className="w-5 h-5" />
@@ -742,7 +742,7 @@ export default function KatalogFormPage() {
               <Trash2 className="w-4 h-4 mr-1.5" /> Hapus dari Katalog
             </Button>
           )}
-          <Button variant="outline" onClick={() => navigate("/katalog")} className="ml-auto">
+          <Button variant="outline" onClick={() => navigate("/admin/katalog")} className="ml-auto">
             Batal
           </Button>
           <Button onClick={handleSave} disabled={saving || (!isEdit && !selectedId)}>
